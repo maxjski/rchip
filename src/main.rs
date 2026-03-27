@@ -22,6 +22,7 @@ struct App {
     display: [u8; DISPLAY_WIDTH * DISPLAY_HEIGHT],
     stack: Vec<u16>,
     dt: u16,
+    st: u16,
     pc: usize,
     i: u16,
     v: [u16; 16],
@@ -39,6 +40,7 @@ impl App {
             display: [0; DISPLAY_WIDTH * DISPLAY_HEIGHT],
             stack: Vec::new(),
             dt: 0,
+            st: 0,
             pc: START_ADDR,
             i: 0,
             v: [0; 16],
@@ -90,6 +92,16 @@ impl App {
                 let val = opcode & 0x00FF;
 
                 if self.v[idx as usize] == val {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            0x4000 => {
+                let idx = (opcode & 0x0F00) >> 8;
+                let val = opcode & 0x00FF;
+
+                if self.v[idx as usize] != val {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
@@ -268,6 +280,12 @@ impl App {
                     self.dt = self.v[idx as usize];
                     self.pc += 2;
                 }
+                0x0018 => {
+                    let idx = (opcode & 0x0F00) >> 8;
+
+                    self.st = self.v[idx as usize];
+                    self.pc += 2;
+                }
                 0x001E => {
                     let val = self.v[((opcode & 0x0F00) >> 8) as usize];
 
@@ -415,6 +433,9 @@ impl ApplicationHandler for App {
             if now.duration_since(self.last_timer_update).as_secs_f32() >= (1.0 / 60.0) {
                 if self.dt > 0 {
                     self.dt -= 1;
+                }
+                if self.st > 0 {
+                    self.st -= 1;
                 }
 
                 self.last_timer_update = now;
